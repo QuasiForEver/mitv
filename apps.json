@@ -1,0 +1,27 @@
+{
+  "apps": [
+    {
+      "name": "Pluto TV",
+      "url": "https://app-hisense.pluto.tv/"
+    },
+    {
+      "name": "Stremio",
+      "url": "https://noobygains.github.io/stremio-vidaa-tv/",
+      "icon": "https://sidee-native-core.empi-tv.workers.dev/app-icons/stremio.png"
+    },
+    {
+      "name": "Nuvio",
+      "url": "https://nuviotvsmart.vercel.app/vidaa.html",
+      "icon": "https://sidee-native-core.empi-tv.workers.dev/app-icons/nuvio.png"
+    },
+    {
+      "name": "Red Bull TV",
+      "url": "https://vidaa-v2.redbull.tv"
+    },
+    {
+      "name": "Wikipedia",
+      "url": "https://www.wikipedia.org/"
+    }
+  ],
+  "names": {}
+}

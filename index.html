@@ -1,0 +1,221 @@
+<!doctype html>
+<html lang="es"><head><meta charset="utf-8"><title>Mi TV</title>
+<!-- Mi TV (versión web). Ajustes privados (clave TMDB, ciudad) en el #hash del acceso
+     de la TV: nunca llegan al servidor. La lista de apps se lee de apps.json. -->
+<style>
+*{box-sizing:border-box}
+html,body{margin:0;width:1920px;height:1080px;background:#07090d;color:#f1f3f6;overflow:hidden;
+ font-family:"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
+#bg,#bg2{position:fixed;inset:0;background-size:cover;background-position:center top;opacity:0;transition:opacity 1.2s}
+#bg.on,#bg2.on{opacity:.55}
+#shade{position:fixed;inset:0;background:linear-gradient(90deg,#07090d 0%,rgba(7,9,13,.85) 35%,rgba(7,9,13,.2) 70%),
+ linear-gradient(0deg,#07090d 0%,rgba(7,9,13,.6) 45%,rgba(7,9,13,0) 70%)}
+#app{position:relative;height:100%}
+header{display:flex;justify-content:space-between;padding:48px 96px 0}
+#clock{font-size:96px;font-weight:200;line-height:1;letter-spacing:-2px}
+#date{font-size:26px;opacity:.7;margin-top:8px}#date::first-letter{text-transform:uppercase}
+#weather{font-size:30px;opacity:.9;text-align:right;margin-top:14px;display:flex;align-items:center;gap:12px}
+#weather svg{width:40px;height:40px}
+#hero{padding:36px 96px 0;height:290px}
+#hero .kicker{font-size:22px;letter-spacing:3px;text-transform:uppercase;color:#59b7ff}
+#hero h1{font-size:64px;margin:10px 0 8px;font-weight:600;max-width:1100px;line-height:1.05;
+ display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+#hero .meta{font-size:24px;opacity:.75}
+#hero p{font-size:24px;max-width:960px;opacity:.85;line-height:1.35;margin:12px 0 0;
+ display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+#caption{position:fixed;right:96px;top:470px;font-size:20px;opacity:.6;text-align:right;max-width:600px}
+#rows{position:absolute;left:0;right:0;top:530px;bottom:0;overflow:hidden}
+#rail{transition:transform .25s ease}
+.row{margin:0 0 26px}
+.row h2{font-size:26px;font-weight:500;margin:0 96px 14px;opacity:.8}
+.track{display:flex;gap:22px;padding:10px 96px;transition:transform .25s ease}
+.it{flex:none;border-radius:16px;background:#151b26;outline:none;position:relative;overflow:hidden;
+ transition:transform .15s ease,box-shadow .15s ease}
+.it.f{transform:scale(1.08);box-shadow:0 0 0 5px #fff,0 16px 40px rgba(0,0,0,.7);z-index:2}
+.poster{width:180px;height:270px;background-size:cover;background-position:center}
+.poster span{position:absolute;left:10px;right:10px;bottom:10px;font-size:20px;text-shadow:0 2px 6px #000}
+.app{width:220px;height:150px;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.app img{width:76px;height:76px;object-fit:contain;border-radius:16px;margin-bottom:12px}
+.mono{width:76px;height:76px;border-radius:18px;display:flex;align-items:center;justify-content:center;
+ font-size:38px;font-weight:700;margin-bottom:12px}
+.name{font-size:22px;max-width:196px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#f1f3f6;
+ text-shadow:0 1px 3px rgba(0,0,0,.8)}
+.src{width:220px;height:150px;padding-top:26px;display:flex;flex-direction:column;align-items:center;justify-content:center;opacity:.4}
+.src.idle{opacity:.75}.src.live{opacity:1}
+.src svg{width:50px;height:50px;margin-bottom:8px;stroke:#9aa4b2}
+.src.idle svg{stroke:#e0b34a}.src.live svg{stroke:#3ddc84}
+.badge{position:absolute;top:10px;left:12px;font-size:15px;letter-spacing:1px;padding:3px 10px;border-radius:20px;
+ background:rgba(255,255,255,.08);color:#9aa4b2}
+.src.idle .badge{background:rgba(224,179,74,.16);color:#e0b34a}.src.live .badge{background:rgba(61,220,132,.18);color:#3ddc84}
+.note{font-size:22px;opacity:.55;margin:0 96px}
+#modal{position:fixed;inset:0;background:rgba(5,7,10,.92);display:none;padding:120px 160px}
+#modal.on{display:flex;gap:60px}
+#modal .p{width:340px;height:510px;border-radius:18px;background-size:cover;flex:none}
+#modal h1{font-size:60px;margin:0 0 12px}#modal .meta{font-size:26px;opacity:.75}
+#modal p{font-size:28px;line-height:1.4;max-width:1000px;opacity:.9}
+.btn{display:inline-block;margin:24px 20px 0 0;padding:18px 36px;border-radius:40px;font-size:26px;background:#222b39}
+.btn.f{background:#fff;color:#000}
+#toast{position:fixed;left:50%;bottom:50px;transform:translateX(-50%);background:#222b39;padding:16px 30px;
+ border-radius:30px;font-size:24px;display:none}
+#keys{position:fixed;right:20px;bottom:12px;font:16px monospace;opacity:.5;display:none}
+</style></head><body>
+<div id="bg"></div><div id="bg2"></div><div id="shade"></div>
+<div id="app">
+ <header><div><div id="clock"></div><div id="date"></div></div><div id="weather"></div></header>
+ <section id="hero"></section>
+ <div id="caption"></div>
+ <div id="rows"><div id="rail"></div></div>
+</div>
+<div id="modal"></div><div id="toast"></div><div id="keys"></div>
+<script>
+/* ---- configuración: #hash del acceso (privado) + caché local + apps.json ---- */
+function store(k,v){try{if(v===undefined)return JSON.parse(localStorage.getItem(k)||"null");localStorage.setItem(k,JSON.stringify(v))}catch(e){return null}}
+function readHash(){try{var h=location.hash.slice(1);if(!h)return null;
+ h=h.replace(/-/g,"+").replace(/_/g,"/");while(h.length%4)h+="=";
+ return JSON.parse(decodeURIComponent(escape(atob(h))))}catch(e){return null}}
+var PRIV=readHash();if(PRIV)store("mitv-priv",PRIV);else PRIV=store("mitv-priv")||{};
+var CFG={};
+var KEY=PRIV.tmdbKey||"",REGION=PRIV.region||"IT",LANG=PRIV.lang||"es-ES",PROVIDER=PRIV.provider||119;
+var IMG="https://image.tmdb.org/t/p/";
+var COLORS=["#e5484d","#f76b15","#ffc53d","#46a758","#12a594","#0090ff","#6e56cf","#d6409f"];
+function $(id){return document.getElementById(id)}
+function el(t,c,x){var e=document.createElement(t);if(c)e.className=c;if(x!=null)e.textContent=x;return e}
+function hash(s){var h=0;for(var i=0;i<s.length;i++)h=(h*31+s.charCodeAt(i))|0;return Math.abs(h)}
+function toast(t){var x=$("toast");x.textContent=t;x.style.display="block";clearTimeout(toast.t);toast.t=setTimeout(function(){x.style.display="none"},3500)}
+function openNative(id){toast("Abre Prime Video desde la barra de apps de VIDAA (botón Home)");return false}
+
+/* ---- filas ---- */
+var rows=[],R=0,cols=[];
+function addRow(title,items,note){
+ var r=el("section","row");r.appendChild(el("h2",null,title));
+ if(!items.length&&note){r.appendChild(el("div","note",note));}
+ var tr=el("div","track");items.forEach(function(it){tr.appendChild(it.node)});r.appendChild(tr);
+ $("rail").appendChild(r);rows.push({sec:r,track:tr,items:items,kind:null});cols.push(0);return rows.length-1}
+function appItem(a){var n=el("div","it app");
+ if(a.icon){var im=new Image();im.src=a.icon;im.onerror=function(){im.replaceWith(mono(a))};n.appendChild(im)}else n.appendChild(mono(a));
+ n.appendChild(el("div","name",a.name));
+ return{node:n,ok:function(){if(a.url)location.href=a.url;else toast(a.hint||("Abre "+a.name+" desde la barra de apps de VIDAA"))},hero:function(){heroApp(a)}}}
+function mono(a){var m=el("div","mono",(a.name||"?").trim().charAt(0).toUpperCase());
+ m.style.background=a.color||COLORS[hash(a.name||"")%COLORS.length];return m}
+var SVG='<svg viewBox="0 0 24 24" fill="none" stroke-width="1.6"><rect x="2" y="4" width="20" height="13" rx="2"/><path d="M8 21h8M12 17v4"/></svg>';
+var STATE=[["","DESCONECTADO"],["idle","EN REPOSO"],["live","ACTIVO"]];
+function srcItem(s){var n=el("div","it src");n.innerHTML=SVG;var b=el("div","badge");n.appendChild(b);
+ var nm=el("div","name");n.appendChild(nm);
+ var it={node:n,src:s,set:function(st,name){var x=STATE[st]||STATE[0];n.className="it src "+x[0]+(n.classList.contains("f")?" f":"");
+   b.textContent=x[1];nm.textContent=name;s.name=name;s.st=st},
+  ok:function(){toast("Pulsa el botón de entrada del mando y elige "+s.name)},
+  hero:function(){heroText("Entrada · "+s.id,s.name,(STATE[s.st]||STATE[0])[1].toLowerCase(),"")}};
+ it.set(s.st||0,s.name||s.id);return it}
+/* lee las entradas de la TV: [id, estado, nombre, extra] x N; estado 0/1/2 */
+function readInputs(){var out=[];try{var l=TvInfo_getParam("videoInputSource")||[];
+  for(var i=0;i+2<l.length;i+=4){var id=l[i];if(!/^HDMI/i.test(id))continue;
+   out.push({id:id,st:+l[i+1]||0,name:(CFG.names&&CFG.names[id])||l[i+2]||id})}}catch(e){}
+ return out}
+function posterItem(m,kind){var n=el("div","it poster");
+ if(m.poster_path)n.style.backgroundImage="url("+IMG+"w342"+m.poster_path+")";else n.appendChild(el("span",null,m.title||m.name));
+ return{node:n,m:m,kind:kind,ok:function(){details(m,kind)},hero:function(){heroMovie(m,kind)}}}
+
+/* ---- banner y fondo ---- */
+function heroText(k,t,meta,p){var h=$("hero");h.innerHTML="";h.appendChild(el("div","kicker",k));h.appendChild(el("h1",null,t));
+ if(meta)h.appendChild(el("div","meta",meta));if(p)h.appendChild(el("p",null,p))}
+var bgFront=0;
+function setBg(u){var a=$("bg"),b=$("bg2"),show=bgFront?a:b,hide=bgFront?b:a;
+ if(!u){a.classList.remove("on");b.classList.remove("on");return}
+ if(setBg.cur===u)return;setBg.cur=u;var im=new Image();im.onload=function(){show.style.backgroundImage="url("+u+")";
+  show.classList.add("on");hide.classList.remove("on");bgFront=1-bgFront};im.src=u}
+function year(m){return((m.release_date||m.first_air_date||"")+"").slice(0,4)}
+function heroMovie(m,kind){heroText("Prime Video · "+(kind=="tv"?"Serie":"Película"),m.title||m.name,
+ [year(m),m.vote_average?"★ "+m.vote_average.toFixed(1):""].filter(Boolean).join("  ·  "),m.overview);
+ $("caption").textContent="";setBg(m.backdrop_path?IMG+"w1280"+m.backdrop_path:"")}
+function heroApp(a){heroText("App",a.name,"",(a.url||"").replace(/^https?:\/\//,"").split("/")[0]||a.hint||"")}
+/* el fondo rota entre películas y series de Prime mientras no estés sobre un póster */
+var POOL=[],poolI=0;
+function rotate(){if(!POOL.length||modalOpen)return;var it=cur();if(it&&it.m)return;
+ var x=POOL[poolI++%POOL.length];setBg(IMG+"w1280"+x.m.backdrop_path);
+ $("caption").textContent="Prime Video · "+(x.m.title||x.m.name)}
+setInterval(rotate,9000);
+
+/* ---- ficha ---- */
+var modalOpen=false,mb=0,mbtns=[];
+function details(m,kind){var x=$("modal");x.innerHTML="";var p=el("div","p");
+ if(m.poster_path)p.style.backgroundImage="url("+IMG+"w500"+m.poster_path+")";x.appendChild(p);
+ var d=el("div");d.appendChild(el("h1",null,m.title||m.name));
+ d.appendChild(el("div","meta",[kind=="tv"?"Serie":"Película",year(m),m.vote_average?"★ "+m.vote_average.toFixed(1):""].filter(Boolean).join("  ·  ")));
+ d.appendChild(el("p",null,m.overview||""));
+ var b1=el("div","btn","Abrir Prime Video"),b2=el("div","btn","Volver");d.appendChild(b1);d.appendChild(b2);x.appendChild(d);
+ mbtns=[{n:b1,ok:function(){openNative("amazon")}},{n:b2,ok:closeModal}];mb=0;paintModal();
+ x.classList.add("on");modalOpen=true}
+function paintModal(){mbtns.forEach(function(b,i){b.n.classList.toggle("f",i==mb)})}
+function closeModal(){$("modal").classList.remove("on");modalOpen=false}
+
+/* ---- navegación ---- */
+function cur(){return rows[R]&&rows[R].items[cols[R]]}
+function paint(){document.querySelectorAll(".it.f").forEach(function(n){n.classList.remove("f")});
+ var it=cur();if(!it)return;it.node.classList.add("f");it.hero&&it.hero();
+ var top=0;for(var i=0;i<R;i++)top+=rows[i].sec.offsetHeight+26;
+ $("rail").style.transform="translateY("+(-Math.max(0,top))+"px)";
+ var w=it.node.offsetWidth+22,shift=Math.max(0,cols[R]-3)*w;rows[R].track.style.transform="translateX("+(-shift)+"px)";
+ if(!it.m)rotate()}
+function firstRow(dir,from){for(var i=from;i>=0&&i<rows.length;i+=dir)if(rows[i].items.length)return i;return -1}
+var BACK=[8,27,461,10009];
+document.addEventListener("keydown",function(e){var k=e.keyCode,kb=$("keys");
+ kb.textContent="tecla: "+k;if(k==406)kb.style.display=kb.style.display=="block"?"none":"block";
+ if(modalOpen){if(k==37)mb=Math.max(0,mb-1);else if(k==39)mb=Math.min(mbtns.length-1,mb+1);
+  else if(k==13)mbtns[mb].ok();else if(BACK.indexOf(k)>=0)closeModal();else return;paintModal();e.preventDefault();return}
+ if(!rows.length)return;
+ if(k==37)cols[R]=Math.max(0,cols[R]-1);
+ else if(k==39)cols[R]=Math.min(rows[R].items.length-1,cols[R]+1);
+ else if(k==38){var u=firstRow(-1,R-1);if(u>=0)R=u}
+ else if(k==40){var d=firstRow(1,R+1);if(d>=0)R=d}
+ else if(k==13){cur()&&cur().ok()}
+ else if(k==403){R=Math.max(0,firstRow(1,0));cols[R]=0}else return;
+ store("mitv-pos",[R,cols[R]]);paint();e.preventDefault()});
+
+/* ---- reloj y tiempo (iconos dibujados: la TV no tiene emojis) ---- */
+function tick(){var d=new Date();$("clock").textContent=("0"+d.getHours()).slice(-2)+":"+("0"+d.getMinutes()).slice(-2);
+ $("date").textContent=d.toLocaleDateString(LANG,{weekday:"long",day:"numeric",month:"long"})}
+tick();setInterval(tick,10000);
+var W={sun:'<circle cx="12" cy="12" r="4.5" fill="#ffc53d"/><g stroke="#ffc53d" stroke-width="2" stroke-linecap="round"><path d="M12 2v2.5M12 19.5V22M2 12h2.5M19.5 12H22M4.9 4.9l1.8 1.8M17.3 17.3l1.8 1.8M4.9 19.1l1.8-1.8M17.3 6.7l1.8-1.8"/></g>',
+ cloud:'<path d="M7 18h10a4 4 0 0 0 .5-8A6 6 0 0 0 6 9.5 4.3 4.3 0 0 0 7 18z" fill="#c9d1dc"/>',
+ part:'<circle cx="8" cy="8" r="3.5" fill="#ffc53d"/><path d="M8 19h9a3.6 3.6 0 0 0 .4-7.2A5.4 5.4 0 0 0 7 11.6 3.8 3.8 0 0 0 8 19z" fill="#c9d1dc"/>',
+ rain:'<path d="M7 14h10a4 4 0 0 0 .5-8A6 6 0 0 0 6 5.5 4.3 4.3 0 0 0 7 14z" fill="#c9d1dc"/><g stroke="#59b7ff" stroke-width="2" stroke-linecap="round"><path d="M8 17l-1 3M12 17l-1 3M16 17l-1 3"/></g>',
+ snow:'<path d="M7 14h10a4 4 0 0 0 .5-8A6 6 0 0 0 6 5.5 4.3 4.3 0 0 0 7 14z" fill="#c9d1dc"/><g fill="#fff"><circle cx="8" cy="18" r="1.3"/><circle cx="12" cy="20" r="1.3"/><circle cx="16" cy="18" r="1.3"/></g>',
+ storm:'<path d="M7 14h10a4 4 0 0 0 .5-8A6 6 0 0 0 6 5.5 4.3 4.3 0 0 0 7 14z" fill="#9aa4b2"/><path d="M12 14l-2 4h3l-2 4" stroke="#ffc53d" stroke-width="2" fill="none" stroke-linejoin="round"/>',
+ fog:'<g stroke="#c9d1dc" stroke-width="2" stroke-linecap="round"><path d="M4 9h16M6 13h12M4 17h16"/></g>'};
+function wIcon(c){return c==0?"sun":c<=2?"part":c==3?"cloud":c<=48?"fog":c>=95?"storm":(c>=71&&c<=77)||c==85||c==86?"snow":"rain"}
+function weather(){var w=PRIV.weather;if(!w||w.lat==null)return;
+ fetch("https://api.open-meteo.com/v1/forecast?latitude="+w.lat+"&longitude="+w.lon+"&current=temperature_2m,weather_code")
+ .then(function(r){return r.json()}).then(function(j){var c=j.current;
+  $("weather").innerHTML='<svg viewBox="0 0 24 24">'+W[wIcon(c.weather_code)]+'</svg>';
+  $("weather").appendChild(el("span",null,Math.round(c.temperature_2m)+"°  "+(w.city||"")))}).catch(function(){})}
+weather();setInterval(weather,30*60*1000);
+
+/* ---- construir: Entradas, Apps, Películas, Series ---- */
+function fill(idx,kind){if(!KEY)return;
+ var u="https://api.themoviedb.org/3/discover/"+kind+"?api_key="+encodeURIComponent(KEY)+"&language="+LANG+
+  "&watch_region="+REGION+"&with_watch_providers="+PROVIDER+"&with_watch_monetization_types=flatrate&sort_by=popularity.desc";
+ fetch(u).then(function(r){return r.json()}).then(function(j){var row=rows[idx];
+  row.items=(j.results||[]).slice(0,20).map(function(m){return posterItem(m,kind)});
+  row.items.forEach(function(it){row.track.appendChild(it.node);if(it.m.backdrop_path)POOL.push(it)});
+  POOL.sort(function(){return Math.random()-.5});
+  var n=row.sec.querySelector(".note");if(n)n.remove();
+  if(!cur())R=Math.max(0,firstRow(1,0));paint()}).catch(function(){var n=rows[idx].sec.querySelector(".note");if(n)n.textContent="No se pudo cargar el catálogo."})}
+function build(cfg){CFG=cfg||{};var APPS=CFG.apps||[];
+ $("rail").innerHTML="";rows=[];cols=[];
+ var live=readInputs();
+ var srcRow=live.length?addRow("Entradas",live.map(srcItem)):-1;
+ addRow("Apps",APPS.map(appItem),"Aún no hay apps.");
+ var movieRow=addRow("Películas en Prime Video",[],KEY?"Cargando…":"Falta la clave de TMDB.");
+ var tvRow=addRow("Series en Prime Video",[],KEY?"Cargando…":"");
+ if(srcRow>=0)setInterval(function(){var now=readInputs();if(!now.length)return;var row=rows[srcRow];
+  now.forEach(function(x){row.items.forEach(function(it){if(it.src.id==x.id)it.set(x.st,x.name)})});if(R==srcRow)paint()},4000);
+ fill(movieRow,"movie");fill(tvRow,"tv");
+ var pos=store("mitv-pos");R=Math.max(0,firstRow(1,0));
+ if(pos&&rows[pos[0]]&&rows[pos[0]].items[pos[1]]){R=pos[0];cols[R]=pos[1]}
+ var h=new Date().getHours();heroText("Mi TV",h<6?"Buenas noches":h<13?"Buenos días":h<20?"Buenas tardes":"Buenas noches","",APPS.length+" apps listas");
+ paint()}
+var cached=store("mitv-apps");
+fetch("apps.json?t="+Date.now(),{cache:"no-store"}).then(function(r){return r.json()})
+ .then(function(c){store("mitv-apps",c);build(c)})
+ .catch(function(){build(cached||{});if(!cached)toast("Sin conexión: no pude cargar tus apps")});
+</script></body></html>
