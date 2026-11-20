@@ -36,8 +36,8 @@
       "icon": "https://quasiforever.github.io/mitv/icons/mi-emu.png"
     },
     {
-      "name": "YouTube (prueba)",
-      "url": "pkgapp://tv.vidaa.app.youtube/apps/start_youtube.sh",
+      "name": "YouTube TV (prueba)",
+      "url": "https://www.youtube.com/tv",
       "icon": "https://quasiforever.github.io/mitv/icons/youtube.png"
     }
   ],
