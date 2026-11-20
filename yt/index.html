@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=1920"><title>Prueba YouTube</title>
+<!-- Prueba de viabilidad: ¿puede esta TV hablar con YouTube directamente desde una web? -->
+<style>
+html,body{margin:0;width:1920px;height:1080px;background:#0b0d14;color:#eef1f6;font-family:"Segoe UI",Roboto,Arial,sans-serif;overflow:hidden}
+#w{padding:50px 90px}h1{font-size:54px;margin:0 0 6px}.sub{font-size:24px;opacity:.6;margin-bottom:30px}
+.r{display:flex;gap:24px;align-items:baseline;font-size:30px;margin:14px 0}
+.s{width:140px;font-weight:700}.ok{color:#3ddc84}.ko{color:#ff6b6b}.wait{color:#e0b34a}
+.d{font-size:20px;opacity:.6;max-width:1200px;word-break:break-all}
+#v{position:absolute;right:90px;top:120px;width:560px;height:315px;background:#000;border-radius:12px}
+#sum{font-size:34px;margin-top:30px;font-weight:600}
+</style></head><body><div id="w">
+<h1>Prueba: YouTube propio</h1><div class="sub">Haz una foto de esta pantalla cuando termine (unos 20 segundos).</div>
+<div id="list"></div><div id="sum"></div></div>
+<video id="v" muted playsinline></video>
+<script>
+var VID="aqz-KE-bpKQ"; /* Big Buck Bunny (Blender, licencia libre) */
+var res={};
+function row(id,label){var r=document.createElement("div");r.className="r";r.innerHTML='<span class="s wait" id="s_'+id+'">…</span><span>'+label+'</span>';
+ var d=document.createElement("div");d.className="d";d.id="d_"+id;document.getElementById("list").appendChild(r);document.getElementById("list").appendChild(d)}
+function set(id,ok,detail){res[id]=ok;var s=document.getElementById("s_"+id);s.className="s "+(ok?"ok":"ko");s.textContent=ok?"SÍ":"NO";
+ document.getElementById("d_"+id).textContent=(detail||"").toString().slice(0,220)}
+function ctx(name,ver,extra){var c={clientName:name,clientVersion:ver,hl:"es",gl:"IT"};for(var k in extra)c[k]=extra[k];return{client:c}}
+function yt(ep,body,ctype){return fetch("https://www.youtube.com/youtubei/v1/"+ep+"?prettyPrint=false",
+ {method:"POST",mode:"cors",credentials:"omit",headers:{"Content-Type":ctype},body:JSON.stringify(body)})
+ .then(function(r){if(!r.ok)throw new Error("HTTP "+r.status);return r.json()})}
+var tests=[
+ ["api_text","1. Hablar con YouTube (búsqueda, modo simple)",function(){return yt("search",{context:ctx("WEB","2.20241120.01.00"),query:"blender open movie"},"text/plain;charset=UTF-8")
+   .then(function(j){return JSON.stringify(j).length+" bytes recibidos"})}],
+ ["api_json","2. Hablar con YouTube (búsqueda, modo JSON)",function(){return yt("search",{context:ctx("TVHTML5","7.20241120.10.00"),query:"blender open movie"},"application/json")
+   .then(function(j){return JSON.stringify(j).length+" bytes recibidos"})}],
+ ["player","3. Pedir los enlaces de un vídeo",function(){
+   var clients=[["ANDROID_VR","1.60.19",{androidSdkVersion:32,deviceMake:"Oculus",deviceModel:"Quest 3"}],["IOS","19.45.4",{deviceMake:"Apple",deviceModel:"iPhone16,2"}],["TVHTML5","7.20241120.10.00",{}],["WEB","2.20241120.01.00",{}]];
+   var i=0,errs=[];
+   function next(){if(i>=clients.length)return Promise.reject(new Error(errs.join(" | ")));var c=clients[i++];
+    return yt("player",{context:ctx(c[0],c[1],c[2]),videoId:VID,contentCheckOk:true,racyCheckOk:true},"application/json").then(function(j){
+     var f=((j.streamingData||{}).formats||[]).concat((j.streamingData||{}).adaptiveFormats||[]);
+     var direct=f.filter(function(x){return x.url});
+     if(!direct.length){errs.push(c[0]+": "+((j.playabilityStatus||{}).status||"sin enlaces"));return next()}
+     window.FMT=direct.filter(function(x){return x.itag==18})[0]||direct.filter(function(x){return /mp4/.test(x.mimeType)&&/avc1/.test(x.mimeType)})[0]||direct[0];
+     return c[0]+": "+direct.length+" enlaces directos (itag "+FMT.itag+")"}).catch(function(e){errs.push(c[0]+": "+e.message);return next()})}
+   return next()}],
+ ["play","4. Reproducir el vídeo en la TV",function(){if(!window.FMT)return Promise.reject(new Error("sin enlace del paso 3"));
+   return new Promise(function(ok,ko){var v=document.getElementById("v");var t=setTimeout(function(){ko(new Error("no arrancó en 12 s"))},12000);
+    v.onplaying=function(){clearTimeout(t);ok("se reproduce ("+(FMT.mimeType||"").split(";")[0]+")")};
+    v.onerror=function(){clearTimeout(t);ko(new Error("error de vídeo "+(v.error&&v.error.code)))};v.src=FMT.url;v.play().catch(function(){})})}],
+ ["sb","5. SponsorBlock (saltar patrocinios)",function(){return fetch("https://sponsor.ajay.app/api/skipSegments?videoID=dQw4w9WgXcQ").then(function(r){
+   if(r.status==404)return "responde (vídeo sin segmentos)";if(!r.ok)throw new Error("HTTP "+r.status);return r.json().then(function(j){return j.length+" segmentos"})})}]
+];
+tests.forEach(function(t){row(t[0],t[1])});
+(function run(i){if(i>=tests.length){var api=res.api_text||res.api_json,s=document.getElementById("sum");
+  s.textContent=api&&res.player&&res.play?"✅ Resultado: se puede hacer un YouTube propio SIN intermediario.":
+   api?"⚠️ Resultado: la TV habla con YouTube, pero falla el vídeo. Revisar.":"❌ Resultado: la TV no puede hablar con YouTube directamente.";return}
+ var t=tests[i];var p;try{p=t[2]()}catch(e){p=Promise.reject(e)}
+ Promise.resolve(p).then(function(d){set(t[0],true,d)},function(e){set(t[0],false,(e&&e.message)||e)}).then(function(){run(i+1)})})(0);
+</script></body></html>
