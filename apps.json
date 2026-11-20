@@ -1,36 +1,34 @@
 {
   "apps": [
     {
-      "name": "Pluto TV",
-      "url": "https://app-hisense.pluto.tv/"
+      "name": "Prime Video",
+      "url": "https://www.primevideo.com/",
+      "icon": "https://quasiforever.github.io/mitv/icons/prime-video.png"
+    },
+    {
+      "name": "Amazon Music",
+      "url": "https://music.amazon.it/",
+      "icon": "https://quasiforever.github.io/mitv/icons/amazon-music.png"
+    },
+    {
+      "name": "Prime Gaming",
+      "url": "https://gaming.amazon.com/",
+      "icon": "https://quasiforever.github.io/mitv/icons/prime-gaming.png"
     },
     {
       "name": "Stremio",
       "url": "https://noobygains.github.io/stremio-vidaa-tv/",
-      "icon": "https://sidee-native-core.empi-tv.workers.dev/app-icons/stremio.png"
-    },
-    {
-      "name": "Nuvio",
-      "url": "https://nuviotvsmart.vercel.app/vidaa.html",
-      "icon": "https://sidee-native-core.empi-tv.workers.dev/app-icons/nuvio.png"
-    },
-    {
-      "name": "Red Bull TV",
-      "url": "https://vidaa-v2.redbull.tv"
-    },
-    {
-      "name": "Wikipedia",
-      "url": "https://www.wikipedia.org/"
+      "icon": "https://quasiforever.github.io/mitv/icons/stremio.png"
     },
     {
       "name": "AnimeAV1",
       "url": "https://animeav1.com/",
-      "icon": "https://animeav1.com/favicon.png"
+      "icon": "https://quasiforever.github.io/mitv/icons/animeav1.png"
     },
     {
       "name": "Mi EMU",
       "url": "https://quasiforever.github.io/mitv/emu/",
-      "color": "#6e56cf"
+      "icon": "https://quasiforever.github.io/mitv/icons/mi-emu.png"
     }
   ],
   "names": {}
