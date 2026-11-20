@@ -73,7 +73,10 @@ function store(k,v){try{if(v===undefined)return JSON.parse(localStorage.getItem(
 function readHash(){try{var h=location.hash.slice(1);if(!h)return null;
  h=h.replace(/-/g,"+").replace(/_/g,"/");while(h.length%4)h+="=";
  return JSON.parse(decodeURIComponent(escape(atob(h))))}catch(e){return null}}
-var PRIV=readHash();if(PRIV)store("mitv-priv",PRIV);else PRIV=store("mitv-priv")||{};
+/* gana la configuración más reciente (campo v): así, abrir una vez Mi TV desde el PC con
+   ajustes nuevos los deja guardados aunque el acceso de la barra lleve los viejos */
+var PRIV=readHash(),SAVED=store("mitv-priv");
+if(PRIV&&(!SAVED||(PRIV.v||0)>=(SAVED.v||0)))store("mitv-priv",PRIV);else PRIV=SAVED||PRIV||{};
 var CFG={};
 var KEY=PRIV.tmdbKey||"",REGION=PRIV.region||"IT",LANG=PRIV.lang||"es-ES",PROVIDER=PRIV.provider||119;
 var IMG="https://image.tmdb.org/t/p/";
