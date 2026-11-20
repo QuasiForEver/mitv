@@ -2,13 +2,18 @@
   "apps": [
     {
       "name": "Prime Video",
-      "url": "https://www.primevideo.com/",
-      "icon": "https://quasiforever.github.io/mitv/icons/prime-video.png"
+      "icon": "https://quasiforever.github.io/mitv/icons/prime-video.png",
+      "hint": "Abre Prime Video desde la barra de VIDAA (o el botón Prime del mando)"
     },
     {
       "name": "Amazon Music",
-      "url": "https://music.amazon.it/",
+      "url": "https://html5tv.music.amazon.dev/?deviceModel=A27F3L5WMHDOWD",
       "icon": "https://quasiforever.github.io/mitv/icons/amazon-music.png"
+    },
+    {
+      "name": "Twitch",
+      "url": "https://ryxjogfhxnvjuptmzkhk.tv.twitch.tv",
+      "icon": "https://quasiforever.github.io/mitv/icons/twitch.png"
     },
     {
       "name": "Prime Gaming",
@@ -29,6 +34,11 @@
       "name": "Mi EMU",
       "url": "https://quasiforever.github.io/mitv/emu/",
       "icon": "https://quasiforever.github.io/mitv/icons/mi-emu.png"
+    },
+    {
+      "name": "YouTube (prueba)",
+      "url": "pkgapp://tv.vidaa.app.youtube/apps/start_youtube.sh",
+      "icon": "https://quasiforever.github.io/mitv/icons/youtube.png"
     }
   ],
   "names": {}
