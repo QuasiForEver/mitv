@@ -26,6 +26,11 @@
       "name": "AnimeAV1",
       "url": "https://animeav1.com/",
       "icon": "https://animeav1.com/favicon.png"
+    },
+    {
+      "name": "Mi EMU",
+      "url": "https://quasiforever.github.io/mitv/emu/",
+      "color": "#6e56cf"
     }
   ],
   "names": {}

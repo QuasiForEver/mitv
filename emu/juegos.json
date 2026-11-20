@@ -1,0 +1,6 @@
+{
+  "juegos": [
+    {"nombre": "Gruniożerca", "sistema": "NES", "archivo": "juegos/gruniozerca.nes",
+     "nota": "Homebrew de dominio público (github.com/arhneu/gruniozerca)"}
+  ]
+}

@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=1920"><title>Mi EMU</title>
+<!-- Mi EMU: emulador retro para la TV con EmulatorJS (GPL-3, cargado desde su CDN).
+     La lista de juegos está en juegos.json. Solo juegos propios o de dominio público. -->
+<style>
+*{box-sizing:border-box}
+html,body{margin:0;width:1920px;height:1080px;background:#0b0d14;color:#eef1f6;overflow:hidden;
+ font-family:"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
+#menu{padding:70px 96px}
+h1{font-size:64px;font-weight:600;margin:0}
+.sub{font-size:26px;opacity:.6;margin:10px 0 50px}
+#grid{display:flex;flex-wrap:wrap;gap:28px}
+.card{width:330px;height:210px;border-radius:20px;background:#171c29;padding:26px;display:flex;flex-direction:column;
+ justify-content:space-between;transition:transform .15s,box-shadow .15s}
+.card.f{transform:scale(1.06);box-shadow:0 0 0 5px #fff,0 16px 40px rgba(0,0,0,.7)}
+.sys{display:inline-block;font-size:18px;letter-spacing:2px;padding:4px 12px;border-radius:20px;background:#2a3350;color:#9fb4ff;align-self:flex-start}
+.card b{font-size:32px;font-weight:600;line-height:1.1}
+.card small{font-size:18px;opacity:.55}
+.usb .sys{background:#3a2f1c;color:#ffc96b}
+#help{position:fixed;left:96px;right:96px;bottom:50px;font-size:24px;opacity:.75;display:flex;gap:40px;flex-wrap:wrap}
+.k{display:inline-block;min-width:34px;padding:2px 10px;border-radius:8px;margin-right:8px;text-align:center;font-weight:700;color:#000}
+#game{position:fixed;inset:0;display:none;background:#000}
+#file{position:fixed;left:-9999px}
+#toast{position:fixed;left:50%;top:40px;transform:translateX(-50%);background:#222b39;padding:14px 28px;border-radius:30px;font-size:24px;display:none;z-index:9}
+</style></head><body>
+<div id="menu">
+ <h1>Mi EMU</h1>
+ <div class="sub">NES · SNES · Game Boy · GBA · Mega Drive · Master System</div>
+ <div id="grid"></div>
+</div>
+<div id="help">
+ <span><span class="k" style="background:#fff">OK</span>Botón A</span>
+ <span><span class="k" style="background:#e5484d">●</span>Botón B</span>
+ <span><span class="k" style="background:#46a758">●</span>Start</span>
+ <span><span class="k" style="background:#ffc53d">●</span>Select</span>
+ <span><span class="k" style="background:#0090ff">●</span>Botón X / Y</span>
+ <span><span class="k" style="background:#9aa4b2">⟲</span>Atrás: salir del juego</span>
+</div>
+<div id="game"><div id="player" style="width:1920px;height:1080px"></div></div>
+<input type="file" id="file" accept=".nes,.sfc,.smc,.gb,.gbc,.gba,.md,.gen,.smd,.bin,.sms,.zip">
+<div id="toast"></div>
+<script>
+function $(i){return document.getElementById(i)}
+function el(t,c,x){var e=document.createElement(t);if(c)e.className=c;if(x!=null)e.textContent=x;return e}
+function toast(t){var x=$("toast");x.textContent=t;x.style.display="block";clearTimeout(toast.t);toast.t=setTimeout(function(){x.style.display="none"},4000)}
+var CORES={nes:"nes",sfc:"snes",smc:"snes",gb:"gb",gbc:"gb",gba:"gba",md:"segaMD",gen:"segaMD",smd:"segaMD",bin:"segaMD",sms:"segaMS"};
+var SYS={nes:"NES",snes:"SNES",gb:"GAME BOY",gba:"GBA",segaMD:"MEGA DRIVE",segaMS:"MASTER SYSTEM"};
+function coreOf(name){var m=/\.([a-z0-9]+)$/i.exec(name||"");return m&&CORES[m[1].toLowerCase()]}
+var items=[],F=0,playing=false,BACK=[8,27,461,10009];
+
+function card(sys,title,note,cls,ok){var c=el("div","card"+(cls?" "+cls:""));c.appendChild(el("span","sys",sys));
+ var t=el("div");t.appendChild(el("b",null,title));if(note){t.appendChild(el("br"));t.appendChild(el("small",null,note))}
+ c.appendChild(t);$("grid").appendChild(c);items.push({n:c,ok:ok})}
+function paint(){items.forEach(function(it,i){it.n.classList.toggle("f",i==F)})}
+
+function play(url,name,core){core=core||coreOf(name);
+ if(!core){toast("Formato no reconocido: "+name);return}
+ playing=true;$("menu").style.display="none";$("help").style.display="none";$("game").style.display="block";
+ window.EJS_player="#player";window.EJS_core=core;window.EJS_gameUrl=url;window.EJS_gameName=name.replace(/\.[^.]+$/,"");
+ window.EJS_pathtodata="https://cdn.emulatorjs.org/stable/data/";window.EJS_startOnLoaded=true;window.EJS_color="#0090ff";
+ window.EJS_language="es-ES";
+ var s=document.createElement("script");s.src=EJS_pathtodata+"loader.js";
+ s.onerror=function(){toast("No se pudo cargar el emulador (¿sin internet?)")};document.body.appendChild(s)}
+
+/* Mando de la TV -> teclas del emulador (A=z, B=x, Start=Enter, Select=v, X=a, Y=s) */
+var MAP={13:["z",90,"KeyZ"],403:["x",88,"KeyX"],404:["Enter",13,"Enter"],405:["v",86,"KeyV"],406:["a",65,"KeyA"]};
+function fake(type,m){var e=new KeyboardEvent(type,{key:m[0],code:m[2],bubbles:true,cancelable:true});
+ Object.defineProperty(e,"keyCode",{get:function(){return m[1]}});Object.defineProperty(e,"which",{get:function(){return m[1]}});
+ e.__fake=true;(document.activeElement||document.body).dispatchEvent(e)}
+["keydown","keyup"].forEach(function(type){window.addEventListener(type,function(e){
+ if(!playing||e.__fake)return;var k=e.keyCode;
+ if(BACK.indexOf(k)>=0){e.preventDefault();e.stopImmediatePropagation();if(type=="keydown")location.reload();return}
+ var m=MAP[k];if(!m)return;e.preventDefault();e.stopImmediatePropagation();fake(type,m)},true)});
+
+document.addEventListener("keydown",function(e){if(playing)return;var k=e.keyCode,per=5;
+ if(k==37)F=Math.max(0,F-1);else if(k==39)F=Math.min(items.length-1,F+1);
+ else if(k==38)F=Math.max(0,F-per);else if(k==40)F=Math.min(items.length-1,F+per);
+ else if(k==13){items[F]&&items[F].ok()}
+ else if(BACK.indexOf(k)>=0){history.length>1?history.back():(location.href="../")}else return;
+ paint();e.preventDefault()});
+
+$("file").addEventListener("change",function(){var f=this.files&&this.files[0];if(!f)return;
+ play(URL.createObjectURL(f),f.name)});
+
+fetch("juegos.json?t="+Date.now(),{cache:"no-store"}).then(function(r){return r.json()}).catch(function(){return{juegos:[]}})
+ .then(function(j){(j.juegos||[]).forEach(function(g){var c=g.core||coreOf(g.archivo);
+   card(SYS[c]||g.sistema||"?",g.nombre,g.nota&&g.nota.length<40?g.nota:"",null,function(){play(g.archivo,g.archivo.split("/").pop(),c)})});
+  card("USB","Abrir juego del USB","Desde una memoria en la TV","usb",function(){$("file").click()});
+  paint()});
+</script></body></html>
